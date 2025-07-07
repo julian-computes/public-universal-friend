@@ -12,13 +12,13 @@ use std::path::Path;
 use tokio::task;
 use tracing::info;
 
-mod chat_state;
+mod entities;
 mod llm;
 mod translation;
 mod translation_service;
-mod tui_app;
+mod tui;
 
-use tui_app::TuiApp;
+use tui::TuiApp;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -70,9 +70,9 @@ fn maybe_init_logging(args: &Args) -> Result<()> {
     if let Some(log_file_path) = &args.log_file {
         // Create parent directories if they don't exist
         if let Some(parent) = Path::new(&log_file_path).parent() {
-            std::fs::create_dir_all(parent).unwrap_or_else(|err| panic!(
-                "Failed to create directories for log file: {log_file_path}: {err}",
-            ));
+            std::fs::create_dir_all(parent).unwrap_or_else(|err| {
+                panic!("Failed to create directories for log file: {log_file_path}: {err}",)
+            });
         }
 
         let file = OpenOptions::new()

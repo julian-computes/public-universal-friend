@@ -2,7 +2,7 @@ use anyhow::Result;
 use tokio::sync::mpsc;
 use tracing::{debug, error, warn};
 
-use crate::chat_state::Message;
+use crate::entities::chat::Message;
 use crate::llm::get_llm;
 use crate::translation::Translator;
 

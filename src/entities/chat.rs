@@ -1,6 +1,7 @@
-use anyhow::{Error, anyhow};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::SystemTime;
+
+static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone)]
 pub struct Message {
@@ -10,8 +11,6 @@ pub struct Message {
     pub translation: Option<String>,
     pub translation_language: Option<String>,
 }
-
-static NEXT_ID: AtomicU64 = AtomicU64::new(0);
 
 impl Message {
     pub fn new(content: String) -> Self {
@@ -45,31 +44,31 @@ impl Message {
 }
 
 #[derive(Debug, Clone)]
-pub struct ChatState {
+pub struct Chat {
     pub messages: Vec<Message>,
-    pub input: String,
     pub target_language: String,
 }
 
-impl Default for ChatState {
+impl Default for Chat {
     fn default() -> Self {
         Self {
             messages: Vec::new(),
-            input: String::new(),
             target_language: "Spanish".to_string(),
         }
     }
 }
 
-impl ChatState {
+impl Chat {
     pub fn new() -> Self {
         Self::default()
     }
 
-    pub fn add_message(&mut self, content: String) -> Result<&Message, Error> {
+    pub fn add_message(&mut self, content: String) -> anyhow::Result<&Message> {
         let message = Message::new(content);
         self.messages.push(message);
-        self.messages.last().ok_or(anyhow!("No message found"))
+        self.messages
+            .last()
+            .ok_or(anyhow::anyhow!("No message found"))
     }
 
     pub fn update_translation(&mut self, message_id: u64, translation: String) {

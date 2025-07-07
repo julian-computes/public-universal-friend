@@ -27,7 +27,6 @@ impl Llm for Llama {
 /// Ensure that all AI models are present.
 #[instrument]
 pub async fn ensure_ai_models_present() -> Result<()> {
-
     debug!("Ensuring models are downloaded");
     if Llama::builder().requires_download() {
         debug!("Ensuring models are downloaded");
