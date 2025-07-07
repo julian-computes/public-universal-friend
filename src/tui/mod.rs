@@ -6,18 +6,21 @@ use std::time::Duration;
 use crate::translation_service::TranslationService;
 
 pub mod chat_state;
+pub mod main_menu_state;
 
 use chat_state::ChatState;
+use main_menu_state::MainMenuState;
 
 #[derive(Debug, Clone)]
 pub enum AppState {
+    MainMenu(MainMenuState),
     Chat(ChatState),
     Quit,
 }
 
 impl Default for AppState {
     fn default() -> Self {
-        Self::Chat(ChatState::new())
+        Self::MainMenu(MainMenuState::new())
     }
 }
 
@@ -52,6 +55,9 @@ impl TuiApp {
 
     pub fn handle_key_event(&mut self, key: KeyCode, modifiers: KeyModifiers) -> Result<()> {
         let new_state = match &mut self.state {
+            AppState::MainMenu(main_menu_state) => {
+                main_menu_state.handle_key_event(key, modifiers)?
+            }
             AppState::Chat(chat_state) => chat_state.handle_key_event(key, modifiers)?,
             AppState::Quit => None,
         };
@@ -65,6 +71,7 @@ impl TuiApp {
 
     pub fn render(&self, f: &mut Frame) {
         match &self.state {
+            AppState::MainMenu(main_menu_state) => main_menu_state.render(f),
             AppState::Chat(chat_state) => chat_state.render(f),
             AppState::Quit => {} // No rendering needed for quit state
         }
@@ -72,6 +79,9 @@ impl TuiApp {
 
     pub fn update(&mut self) {
         match &mut self.state {
+            AppState::MainMenu(main_menu_state) => {
+                main_menu_state.update(&mut self.translation_service);
+            }
             AppState::Chat(chat_state) => {
                 chat_state.update(&mut self.translation_service);
             }
