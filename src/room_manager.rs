@@ -3,6 +3,8 @@ use p2panda_core::Hash;
 use std::fmt;
 use uuid::Uuid;
 
+use crate::p2p::ChatGroup;
+
 /// Represents a chat room with its identifier and metadata
 #[derive(Debug, Clone)]
 pub struct Room {
@@ -69,6 +71,11 @@ impl Room {
             name,
             identifier,
         })
+    }
+
+    /// Create a ChatGroup for p2p networking from this room.
+    pub fn to_chat_group(&self) -> ChatGroup {
+        ChatGroup::from_hash(self.hash.clone())
     }
 }
 

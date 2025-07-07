@@ -14,6 +14,7 @@ use tracing::info;
 
 mod entities;
 mod llm;
+mod p2p;
 mod room_manager;
 mod translation;
 mod translation_service;

@@ -11,7 +11,7 @@ pub mod main_menu_state;
 use chat_state::ChatState;
 use main_menu_state::MainMenuState;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum AppState {
     MainMenu(MainMenuState),
     Chat(ChatState),

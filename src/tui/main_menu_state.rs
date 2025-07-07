@@ -18,7 +18,7 @@ pub enum MenuOption {
     JoinRoom,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct MainMenuState {
     pub selected_option: MenuOption,
     pub room_name_input: String,
@@ -132,9 +132,7 @@ impl State for MainMenuState {
         f.render_widget(help, chunks[2]);
     }
 
-    fn update(&mut self, _translation_service: &mut TranslationService) {
-        // Main menu doesn't need translation updates
-    }
+    fn update(&mut self, _translation_service: &mut TranslationService) {}
 }
 
 impl MainMenuState {
@@ -210,8 +208,8 @@ impl MainMenuState {
                         }
                     }
 
-                    // Transition to chat
-                    Ok(Some(AppState::Chat(ChatState::new())))
+                    // Transition to chat with room context
+                    Ok(Some(AppState::Chat(ChatState::with_room(room))))
                 } else {
                     Ok(None)
                 }
@@ -246,8 +244,8 @@ impl MainMenuState {
                             self.status_message = format!("Joining room: {}", room.name);
                             tracing::info!("Joining room: {}", room.identifier);
 
-                            // Transition to chat
-                            Ok(Some(AppState::Chat(ChatState::new())))
+                            // Transition to chat with room context
+                            Ok(Some(AppState::Chat(ChatState::with_room(room))))
                         }
                         Err(e) => {
                             self.status_message = format!("Invalid room ID: {}", e);
