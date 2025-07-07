@@ -1,9 +1,7 @@
 use anyhow::Result;
 
-use crate::p2p::{
-    ChatGroup, NetworkCommand, NetworkEvent, NetworkMessage, network_background_task,
-};
-use super::network::create_network;
+use super::task::network_background_task;
+use crate::p2p::{ChatGroup, NetworkCommand, NetworkEvent, NetworkMessage};
 
 /// Handles network communication for a specific chat group using background tasks.
 #[derive(Debug)]
