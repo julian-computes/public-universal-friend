@@ -13,6 +13,7 @@ use crate::entities::chat::Chat;
 use crate::p2p::{ChatGroup, ChatNetworkService, NetworkError, NetworkEvent, NetworkMessage};
 use crate::room_manager::Room;
 use crate::translation_service::{TranslationRequest, TranslationService};
+use crate::config::Config;
 use crate::tui::{AppState, State};
 
 #[derive(Debug, Clone)]
@@ -34,6 +35,7 @@ pub struct ChatState {
     pub pending_outgoing_messages: Vec<String>,
     pub subscribed: bool,
     pub connection_status: ConnectionStatus,
+    pub show_translations: bool,
 }
 
 impl ChatState {
@@ -54,6 +56,7 @@ impl ChatState {
             pending_outgoing_messages: Vec::new(),
             subscribed: false,
             connection_status: ConnectionStatus::Connecting,
+            show_translations: true, // Default to showing translations
         }
     }
 }
@@ -63,9 +66,17 @@ impl State for ChatState {
         &mut self,
         key: KeyCode,
         modifiers: KeyModifiers,
+        config: &Config,
     ) -> Result<Option<AppState>> {
         match (key, modifiers) {
             (KeyCode::Char('q'), KeyModifiers::CONTROL) => Ok(Some(AppState::Quit)),
+            (KeyCode::Char('t'), KeyModifiers::CONTROL) => {
+                // Toggle translations panel (only if AI is not disabled)
+                if !config.disable_ai {
+                    self.show_translations = !self.show_translations;
+                }
+                Ok(None)
+            }
             (KeyCode::Char(c), KeyModifiers::NONE) => {
                 self.input.push(c);
                 Ok(None)
@@ -81,7 +92,7 @@ impl State for ChatState {
             (KeyCode::Enter, _) => {
                 if !self.input.is_empty() {
                     let content = self.input.clone();
-                    let _message = self.chat.add_message(content.clone())?;
+                    let _message = self.chat.add_message(content.clone(), config.username.clone())?;
 
                     // Queue message for network broadcasting
                     self.pending_outgoing_messages.push(content);
@@ -94,17 +105,36 @@ impl State for ChatState {
         }
     }
 
-    fn render(&self, f: &mut Frame) {
-        let chunks = Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+    fn render(&self, f: &mut Frame, config: &Config) {
+        // Main vertical layout: messages area and input at bottom
+        let main_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(0), Constraint::Length(3)])
             .split(f.area());
 
-        render_input_pane(f, self, chunks[0]);
-        render_translation_pane(f, self, chunks[1]);
+        let messages_area = main_chunks[0];
+        let input_area = main_chunks[1];
+
+        // Render input at bottom (full width)
+        render_input_box(f, self, input_area);
+
+        // Determine if we should show translations (AI enabled and user wants to see them)
+        if self.show_translations && !config.disable_ai {
+            // Split messages area horizontally: messages | translations
+            let message_chunks = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+                .split(messages_area);
+
+            render_messages_pane(f, self, message_chunks[0]);
+            render_translation_pane(f, self, message_chunks[1], config);
+        } else {
+            // Show only messages (full width)
+            render_messages_pane(f, self, messages_area);
+        }
     }
 
-    fn update(&mut self, translation_service: &mut TranslationService) {
+    fn update(&mut self, translation_service: &mut TranslationService, config: &Config) {
         // Process any completed translations
         while let Some(response) = translation_service.try_recv_translation() {
             self.chat
@@ -112,20 +142,23 @@ impl State for ChatState {
         }
 
         // Request translation for messages that need it and haven't been requested yet
-        for message in &self.chat.messages {
-            if message.translation.is_none()
-                && !self.translation_requests_sent.contains(&message.id)
-            {
-                let request = TranslationRequest {
-                    message_id: message.id,
-                    content: message.content.clone(),
-                    target_language: self.chat.target_language.clone(),
-                };
-                if let Err(e) = translation_service.request_tx.send(request) {
-                    tracing::warn!("Failed to request translation: {}", e);
-                } else {
-                    // Mark this message as having a translation request sent
-                    self.translation_requests_sent.insert(message.id);
+        // Only if AI is not disabled
+        if !config.disable_ai {
+            for message in &self.chat.messages {
+                if message.translation.is_none()
+                    && !self.translation_requests_sent.contains(&message.id)
+                {
+                    let request = TranslationRequest {
+                        message_id: message.id,
+                        content: message.content.clone(),
+                        target_language: config.target_language.clone(),
+                    };
+                    if let Err(e) = translation_service.request_tx.send(request) {
+                        tracing::warn!("Failed to request translation: {}", e);
+                    } else {
+                        // Mark this message as having a translation request sent
+                        self.translation_requests_sent.insert(message.id);
+                    }
                 }
             }
         }
@@ -142,11 +175,7 @@ impl State for ChatState {
 
         // Send pending outgoing messages via background task
         for content in self.pending_outgoing_messages.drain(..) {
-            let network_message = NetworkMessage::new(
-                content,
-                // Should be a user-defined username
-                "User 1234".to_string(),
-            );
+            let network_message = NetworkMessage::new(content, config.username.clone());
 
             if let Err(e) = self.network_service.send_message(network_message) {
                 tracing::warn!("Failed to queue network message: {}", e);
@@ -158,10 +187,10 @@ impl State for ChatState {
             match event {
                 NetworkEvent::MessageReceived(network_message) => {
                     // Add received message to chat
-                    if let Err(e) = self.chat.add_message(format!(
-                        "[{}] {}",
-                        network_message.sender_id, network_message.content
-                    )) {
+                    if let Err(e) = self.chat.add_message(
+                        network_message.content,
+                        network_message.sender_id
+                    ) {
                         tracing::warn!("Failed to add received message: {}", e);
                     }
                 }
@@ -193,18 +222,14 @@ impl State for ChatState {
     }
 }
 
-fn render_input_pane(f: &mut Frame, chat_state: &ChatState, area: Rect) {
+fn render_messages_pane(f: &mut Frame, chat_state: &ChatState, area: Rect) {
     // Check if we need to show error details
     let has_error = matches!(chat_state.connection_status, ConnectionStatus::Error(_));
 
     let constraints = if has_error {
-        vec![
-            Constraint::Min(0),
-            Constraint::Length(2),
-            Constraint::Length(3),
-        ]
+        vec![Constraint::Min(0), Constraint::Length(2)]
     } else {
-        vec![Constraint::Min(0), Constraint::Length(3)]
+        vec![Constraint::Min(0)]
     };
 
     let chunks = Layout::default()
@@ -236,7 +261,7 @@ fn render_input_pane(f: &mut Frame, chat_state: &ChatState, area: Rect) {
     f.render_widget(messages_list, chunks[0]);
 
     // Show error details if there's an error
-    let input_chunk_index = if has_error {
+    if has_error {
         if let ConnectionStatus::Error(ref error_msg) = chat_state.connection_status {
             let error_widget = Paragraph::new(error_msg.as_str())
                 .style(Style::default().fg(Color::Red))
@@ -247,19 +272,18 @@ fn render_input_pane(f: &mut Frame, chat_state: &ChatState, area: Rect) {
                 );
             f.render_widget(error_widget, chunks[1]);
         }
-        2
-    } else {
-        1
-    };
+    }
+}
 
+fn render_input_box(f: &mut Frame, chat_state: &ChatState, area: Rect) {
     let input = Paragraph::new(chat_state.input.as_str())
         .style(Style::default().fg(Color::Yellow))
         .block(Block::default().borders(Borders::ALL).title("Input"));
 
-    f.render_widget(input, chunks[input_chunk_index]);
+    f.render_widget(input, area);
 }
 
-fn render_translation_pane(f: &mut Frame, chat_state: &ChatState, area: Rect) {
+fn render_translation_pane(f: &mut Frame, chat_state: &ChatState, area: Rect, config: &Config) {
     let translation_messages: Vec<ListItem> = chat_state
         .chat
         .messages
@@ -267,7 +291,7 @@ fn render_translation_pane(f: &mut Frame, chat_state: &ChatState, area: Rect) {
         .map(|msg| ListItem::new(Line::from(Span::raw(msg.display_translation()))))
         .collect();
 
-    let title = format!("Translations ({})", chat_state.chat.target_language);
+    let title = format!("Translations ({})", config.target_language);
     let translations_list =
         List::new(translation_messages).block(Block::default().borders(Borders::ALL).title(title));
 

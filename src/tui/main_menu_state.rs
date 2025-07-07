@@ -9,6 +9,7 @@ use ratatui::{
 };
 
 use crate::room_manager::{Room, copy_to_clipboard};
+use crate::config::Config;
 use crate::translation_service::TranslationService;
 use crate::tui::{AppState, State, chat_state::ChatState};
 
@@ -57,6 +58,7 @@ impl State for MainMenuState {
         &mut self,
         key: KeyCode,
         modifiers: KeyModifiers,
+        _config: &Config,
     ) -> Result<Option<AppState>> {
         match (key, modifiers) {
             (KeyCode::Char('q'), KeyModifiers::CONTROL) => Ok(Some(AppState::Quit)),
@@ -68,7 +70,7 @@ impl State for MainMenuState {
         }
     }
 
-    fn render(&self, f: &mut Frame) {
+    fn render(&self, f: &mut Frame, _config: &Config) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -132,7 +134,7 @@ impl State for MainMenuState {
         f.render_widget(help, chunks[2]);
     }
 
-    fn update(&mut self, _translation_service: &mut TranslationService) {}
+    fn update(&mut self, _translation_service: &mut TranslationService, _config: &Config) {}
 }
 
 impl MainMenuState {

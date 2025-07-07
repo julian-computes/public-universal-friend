@@ -8,10 +8,11 @@ use crossterm::{
 use ratatui::{Terminal, backend::CrosstermBackend};
 use std::fs::OpenOptions;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tokio::task;
 use tracing::info;
 
+mod config;
 mod entities;
 mod llm;
 mod p2p;
@@ -20,6 +21,7 @@ mod translation;
 mod translation_service;
 mod tui;
 
+use config::Config;
 use tui::TuiApp;
 
 #[derive(Parser)]
@@ -28,6 +30,10 @@ struct Args {
     /// Path to log file. If not provided, no logs will be emitted.
     #[arg(long)]
     log_file: Option<String>,
+    
+    /// Path to config file. If not provided, uses ~/.config/puf/config.toml
+    #[arg(short, long)]
+    config: Option<PathBuf>,
 }
 
 #[tokio::main]
@@ -36,11 +42,20 @@ async fn main() -> Result<()> {
 
     maybe_init_logging(&args)?;
 
-    // Ensure all AI models are downloaded before taking over the terminal
-    llm::ensure_ai_models_present().await?;
-    // Warm LLMs in the background.
-    // Future idea: Consider showing the state of this in the UI
-    task::spawn(llm::warm_ai_models());
+    // Load configuration
+    let config = Config::load(args.config.clone())?;
+    info!("Loaded config: disable_ai={}, username={}", config.disable_ai, config.username);
+
+    // Conditionally load AI models based on config
+    if !config.disable_ai {
+        // Ensure all AI models are downloaded before taking over the terminal
+        llm::ensure_ai_models_present().await?;
+        // Warm LLMs in the background.
+        // Future idea: Consider showing the state of this in the UI
+        task::spawn(llm::warm_ai_models());
+    } else {
+        info!("AI/LLM functionality disabled by config");
+    }
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -48,7 +63,7 @@ async fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = TuiApp::new();
+    let mut app = TuiApp::new(config);
     let res = app.run(&mut terminal);
 
     disable_raw_mode()?;

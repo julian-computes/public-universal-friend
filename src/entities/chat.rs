@@ -10,10 +10,11 @@ pub struct Message {
     pub timestamp: SystemTime,
     pub translation: Option<String>,
     pub translation_language: Option<String>,
+    pub sender: String,
 }
 
 impl Message {
-    pub fn new(content: String) -> Self {
+    pub fn new(content: String, sender: String) -> Self {
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
         Self {
@@ -22,6 +23,7 @@ impl Message {
             timestamp: SystemTime::now(),
             translation: None,
             translation_language: None,
+            sender,
         }
     }
 
@@ -32,13 +34,13 @@ impl Message {
     }
 
     pub fn display_original(&self) -> String {
-        format!("User: {}", self.content)
+        format!("{}: {}", self.sender, self.content)
     }
 
     pub fn display_translation(&self) -> String {
         match &self.translation {
-            Some(trans) => format!("User: {trans}"),
-            None => "Translating...".to_string(),
+            Some(trans) => format!("{}: {}", self.sender, trans),
+            None => format!("{}: Translating...", self.sender),
         }
     }
 }
@@ -63,8 +65,8 @@ impl Chat {
         Self::default()
     }
 
-    pub fn add_message(&mut self, content: String) -> anyhow::Result<&Message> {
-        let message = Message::new(content);
+    pub fn add_message(&mut self, content: String, sender: String) -> anyhow::Result<&Message> {
+        let message = Message::new(content, sender);
         self.messages.push(message);
         self.messages
             .last()

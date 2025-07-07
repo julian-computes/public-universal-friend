@@ -1,0 +1,13 @@
+# Example configuration for Public Universal Friend (PUF)
+# Copy this to ~/.config/puf/config.toml or specify with --config flag
+
+# Your display name in chat messages
+username = "You"
+
+# Disable AI/LLM functionality (translations)
+# Set to true to skip downloading and loading AI models
+disable_ai = false
+
+# Target language for translations
+# Available languages depend on the AI model
+target_language = "Spanish"
