@@ -24,13 +24,22 @@ impl Llm for Llama {
     }
 }
 
-/// Ensure that all AI models are loaded and ready for inference.
+/// Ensure that all AI models are present.
 #[instrument]
-pub async fn initialize_ai() -> Result<()> {
+pub async fn ensure_ai_models_present() -> Result<()> {
     debug!("Initializing AI");
-    let llm = get_llm().await?;
+    let _ = get_llm().await?;
     debug!("Created Llama instance");
 
+    Ok(())
+}
+
+/// Warm AI models so they respond quickly.
+#[instrument]
+pub async fn warm_ai_models() -> Result<()> {
+    let llm = get_llm().await?;
+
+    debug!("Warming Llama instance");
     llm.task("Say hello back.").run("Hello!").await?;
     debug!("Warmed Llama instance");
 

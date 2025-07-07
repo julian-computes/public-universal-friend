@@ -34,9 +34,11 @@ async fn main() -> Result<()> {
 
     maybe_init_logging(&args)?;
 
+    // Ensure all AI models are downloaded before taking over the terminal
+    llm::ensure_ai_models_present().await?;
     // Warm LLMs in the background.
-    // Future idea: Consider showing the state of this in the UI.
-    task::spawn(llm::initialize_ai());
+    // Future idea: Consider showing the state of this in the UI
+    task::spawn(llm::warm_ai_models());
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
