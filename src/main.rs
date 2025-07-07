@@ -3,18 +3,20 @@ use clap::Parser;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::{Terminal, backend::CrosstermBackend};
 use std::fs::OpenOptions;
 use std::io;
 use std::path::Path;
 use tokio::task;
 use tracing::info;
 
-mod tui_app;
+mod chat_state;
 mod llm;
 mod translation;
+mod translation_service;
+mod tui_app;
 
 use tui_app::TuiApp;
 
@@ -66,17 +68,16 @@ fn maybe_init_logging(args: &Args) -> Result<()> {
     if let Some(log_file_path) = &args.log_file {
         // Create parent directories if they don't exist
         if let Some(parent) = Path::new(&log_file_path).parent() {
-            std::fs::create_dir_all(parent).expect(&format!(
-                "Failed to create directories for log file: {}",
-                log_file_path
+            std::fs::create_dir_all(parent).unwrap_or_else(|err| panic!(
+                "Failed to create directories for log file: {log_file_path}: {err}",
             ));
         }
 
         let file = OpenOptions::new()
             .create(true)
             .append(true)
-            .open(&log_file_path)
-            .expect(&format!("Failed to open log file: {}", log_file_path));
+            .open(log_file_path)
+            .unwrap_or_else(|err| panic!("Failed to open log file: {log_file_path}: {err}"));
 
         tracing_subscriber::fmt()
             .with_writer(file)

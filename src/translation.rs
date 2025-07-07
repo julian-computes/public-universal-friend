@@ -33,8 +33,8 @@ Input: "Hello"
 Output: Bonjour
 
 Example 2:
-Input: "Good morning"
-Output: Bonjour
+Input: "This is my dog."
+Output: Este es mi perro.
 
 Example 3:
 Input: "How are you?"
