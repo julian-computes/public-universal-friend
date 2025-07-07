@@ -1,5 +1,5 @@
 use anyhow::Result;
-use kalosm::language::{ChatModelExt, Llama};
+use kalosm::language::{ChatModelExt, Llama, ModelBuilder};
 use tokio::sync::OnceCell;
 use tracing::{debug, instrument};
 
@@ -27,9 +27,13 @@ impl Llm for Llama {
 /// Ensure that all AI models are present.
 #[instrument]
 pub async fn ensure_ai_models_present() -> Result<()> {
-    debug!("Initializing AI");
-    let _ = get_llm().await?;
-    debug!("Created Llama instance");
+
+    debug!("Ensuring models are downloaded");
+    if Llama::builder().requires_download() {
+        debug!("Ensuring models are downloaded");
+        let _ = get_llm().await?;
+    }
+    debug!("All models are downloaded");
 
     Ok(())
 }

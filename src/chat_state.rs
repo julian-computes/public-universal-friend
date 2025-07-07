@@ -56,7 +56,7 @@ impl Default for ChatState {
         Self {
             messages: Vec::new(),
             input: String::new(),
-            target_language: "French".to_string(),
+            target_language: "Spanish".to_string(),
         }
     }
 }
