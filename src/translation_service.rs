@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tokio::sync::{mpsc, OnceCell};
+use tokio::sync::{OnceCell, mpsc};
 use tracing::{debug, error, warn};
 
 use crate::entities::chat::Message;

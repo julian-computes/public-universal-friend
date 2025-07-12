@@ -379,7 +379,6 @@ fn render_input_box(f: &mut Frame, chat_state: &ChatState, area: Rect) {
     f.render_widget(input, area);
 }
 
-
 fn wrap_text(text: &str, max_width: usize) -> Vec<String> {
     if max_width == 0 {
         return vec![text.to_string()];
@@ -430,4 +429,3 @@ fn render_translation_pane(f: &mut Frame, chat_state: &mut ChatState, area: Rect
         ScrollType::Translations,
     );
 }
-

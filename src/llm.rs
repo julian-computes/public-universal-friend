@@ -1,5 +1,5 @@
 use anyhow::Result;
-use kalosm::language::{ChatModelExt, Llama, LlamaSource, ModelBuilder};
+use kalosm::language::{ChatModelExt, Llama, ModelBuilder};
 use tokio::sync::OnceCell;
 use tracing::{debug, instrument};
 
