@@ -6,7 +6,7 @@ username = "You"
 
 # Disable AI/LLM functionality (translations)
 # Set to true to skip downloading and loading AI models
-disable_ai = false
+disable_ai = true
 
 # Target language for translations
 # Available languages depend on the AI model

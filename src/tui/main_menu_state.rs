@@ -8,8 +8,8 @@ use ratatui::{
     widgets::{Block, Borders, List, ListItem, Paragraph},
 };
 
-use crate::room_manager::{Room, copy_to_clipboard};
 use crate::config::Config;
+use crate::room_manager::{Room, copy_to_clipboard};
 use crate::translation_service::TranslationService;
 use crate::tui::{AppState, State, chat_state::ChatState};
 
@@ -70,7 +70,7 @@ impl State for MainMenuState {
         }
     }
 
-    fn render(&self, f: &mut Frame, _config: &Config) {
+    fn render(&mut self, f: &mut Frame, _config: &Config) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([

@@ -1,7 +1,7 @@
 use p2panda_net::{FromNetwork, Network, ToNetwork};
 
-use crate::p2p::{ChatGroup, NetworkCommand, NetworkError, NetworkEvent, NetworkMessage};
 use super::network::create_network;
+use crate::p2p::{ChatGroup, NetworkCommand, NetworkError, NetworkEvent, NetworkMessage};
 
 /// State for the network background task
 struct NetworkTaskState {

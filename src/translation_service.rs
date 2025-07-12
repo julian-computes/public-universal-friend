@@ -1,10 +1,12 @@
 use anyhow::Result;
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, OnceCell};
 use tracing::{debug, error, warn};
 
 use crate::entities::chat::Message;
 use crate::llm::get_llm;
 use crate::translation::Translator;
+
+static IS_TRANSLATION_WORKER_DISABLED: OnceCell<bool> = OnceCell::const_new();
 
 #[derive(Debug, Clone)]
 pub struct TranslationRequest {
@@ -58,10 +60,22 @@ impl TranslationService {
     }
 }
 
+pub fn disable_translation_worker() -> Result<()> {
+    IS_TRANSLATION_WORKER_DISABLED.set(true)?;
+    Ok(())
+}
+
 async fn translation_worker(
     mut request_rx: mpsc::UnboundedReceiver<TranslationRequest>,
     response_tx: mpsc::UnboundedSender<TranslationResponse>,
 ) {
+    if let Some(is_translation_worker_disabled) = IS_TRANSLATION_WORKER_DISABLED.get() {
+        if *is_translation_worker_disabled {
+            debug!("Translation disabled");
+            return;
+        }
+    }
+
     debug!("Translation worker started");
 
     // Initialize translator once for the worker

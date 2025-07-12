@@ -20,6 +20,7 @@ tokio = { version = "1.46.1", features = ["full"] }
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
 uuid = { version = "1.17.0", features = ["v4"] }
+tui-scrollview = "0.5.1"
 
 [dev-dependencies]
 tempfile = "3.12.0"

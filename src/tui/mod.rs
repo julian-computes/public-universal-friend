@@ -32,7 +32,7 @@ pub trait State {
         modifiers: KeyModifiers,
         config: &Config,
     ) -> Result<Option<AppState>>;
-    fn render(&self, f: &mut Frame, config: &Config);
+    fn render(&mut self, f: &mut Frame, config: &Config);
     fn update(&mut self, translation_service: &mut TranslationService, config: &Config);
 }
 
@@ -56,7 +56,9 @@ impl TuiApp {
             AppState::MainMenu(main_menu_state) => {
                 main_menu_state.handle_key_event(key, modifiers, &self.config)?
             }
-            AppState::Chat(chat_state) => chat_state.handle_key_event(key, modifiers, &self.config)?,
+            AppState::Chat(chat_state) => {
+                chat_state.handle_key_event(key, modifiers, &self.config)?
+            }
             AppState::Quit => None,
         };
 
@@ -67,8 +69,8 @@ impl TuiApp {
         Ok(())
     }
 
-    pub fn render(&self, f: &mut Frame) {
-        match &self.state {
+    pub fn render(&mut self, f: &mut Frame) {
+        match &mut self.state {
             AppState::MainMenu(main_menu_state) => main_menu_state.render(f, &self.config),
             AppState::Chat(chat_state) => chat_state.render(f, &self.config),
             AppState::Quit => {} // No rendering needed for quit state

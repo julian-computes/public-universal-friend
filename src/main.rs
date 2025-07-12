@@ -3,9 +3,9 @@ use clap::Parser;
 use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ratatui::{Terminal, backend::CrosstermBackend};
+use ratatui::{backend::CrosstermBackend, Terminal};
 use std::fs::OpenOptions;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -21,6 +21,7 @@ mod translation;
 mod translation_service;
 mod tui;
 
+use crate::translation_service::disable_translation_worker;
 use config::Config;
 use tui::TuiApp;
 
@@ -30,7 +31,7 @@ struct Args {
     /// Path to log file. If not provided, no logs will be emitted.
     #[arg(long)]
     log_file: Option<String>,
-    
+
     /// Path to config file. If not provided, uses ~/.config/puf/config.toml
     #[arg(short, long)]
     config: Option<PathBuf>,
@@ -44,7 +45,10 @@ async fn main() -> Result<()> {
 
     // Load configuration
     let config = Config::load(args.config.clone())?;
-    info!("Loaded config: disable_ai={}, username={}", config.disable_ai, config.username);
+    info!(
+        "Loaded config: disable_ai={}, username={}",
+        config.disable_ai, config.username
+    );
 
     // Conditionally load AI models based on config
     if !config.disable_ai {
@@ -55,6 +59,7 @@ async fn main() -> Result<()> {
         task::spawn(llm::warm_ai_models());
     } else {
         info!("AI/LLM functionality disabled by config");
+        disable_translation_worker()?;
     }
 
     enable_raw_mode()?;
